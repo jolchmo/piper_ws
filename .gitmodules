@@ -1,0 +1,6 @@
+[submodule "piper_lerobot"]
+	path = piper_lerobot
+	url = https://github.com/jolchmo/piper_lerobot
+[submodule "lerobot"]
+	path = lerobot
+	url = https://github.com/huggingface/lerobot
