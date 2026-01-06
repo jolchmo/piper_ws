@@ -1,15 +1,8 @@
 #!/usr/bin/env bash
 
-# CAN 接口名称
-CAN_LEADER="can_leader"
-CAN_FOLLOWER="can_follower"
-
-# 相机配置
-# 设置为空字符串 "" 禁用相机
-CAMERA_PATH="/dev/video6"
-CAMERA_FPS=30
-CAMERA_WIDTH=640
-CAMERA_HEIGHT=480
+# 加载配置文件
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.env"
 
 echo "=========================================="
 echo "  Piper 遥操作启动脚本"
@@ -17,9 +10,9 @@ echo "=========================================="
 
 # 检查 can_leader 是否存在
 if ! ip link show "$CAN_LEADER" &>/dev/null; then
-    echo "⚠️  $CAN_LEADER 接口不存在，正在调用 setup.sh 初始化..."
+    echo "⚠️  $CAN_LEADER 接口不存在，正在调用 1_setup.sh 初始化..."
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    source "$SCRIPT_DIR/setup.sh"
+    source "$SCRIPT_DIR/1_setup.sh"
     
     # 再次检查
     if ! ip link show "$CAN_LEADER" &>/dev/null; then

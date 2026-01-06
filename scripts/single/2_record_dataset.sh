@@ -1,19 +1,13 @@
 #!/bin/bash
 # 录制数据集脚本
 
-DATASET_NAME=${1:-"jolch/piper_pickandplace"}
-NUM_EPISODES=${2:-50}
+# 加载配置文件
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.env"
 
-# CAN 接口名称
-CAN_LEADER="can_leader"
-CAN_FOLLOWER="can_follower"
-
-# 相机配置
-# 设置为空字符串 "" 禁用相机
-CAMERA_PATH="/dev/video6"
-CAMERA_FPS=30
-CAMERA_WIDTH=640
-CAMERA_HEIGHT=480
+# 命令行参数覆盖默认值
+DATASET_NAME=${1:-"$DEFAULT_DATASET_NAME"}
+NUM_EPISODES=${2:-$DEFAULT_NUM_EPISODES}
 
 echo "=========================================="
 echo "  Piper 数据采集脚本"
@@ -58,7 +52,7 @@ lerobot-record \
     --teleop.id=leader \
     --teleop.discover_packages_path=piper_lerobot \
     --dataset.repo_id=$DATASET_NAME \
-    --dataset.root="./datasets"  \              # 指定本地保存路径
+    --dataset.root="$LOCAL_DATASET_DIR/$MISSION_NAME"  \              # 指定本地保存路径
     --dataset.push_to_hub=false \               # 禁用上传到 Hub
     --dataset.num_episodes=$NUM_EPISODES \
     --display_data=true

@@ -1,22 +1,14 @@
 #!/usr/bin/env bash
-# 遥操作脚本 - 包含 CAN 初始化
-# 参考: ref-piper/lerobot_piper/1__init_can.sh
+# 双臂遥操作 CAN 初始化脚本
+# 参考: 1_setup.sh (单臂版本)
 
 set -e
 
 # ============================================================================
-# CAN 端口配置
+# 加载配置文件
 # ============================================================================
-CAN_LEADER="can_leader"
-CAN_FOLLOWER="can_follower"
-BITRATE=1000000
-
-# USB 端口映射（根据实际情况修改）
-# 格式: USB_PORTS["USB总线地址"]="CAN接口名:波特率"
-# 使用 `sudo ethtool -i canX` 查看 bus-info 获取 USB 总线地址
-declare -A USB_PORTS
-USB_PORTS["1-2.2:1.0"]="$CAN_LEADER:$BITRATE"
-USB_PORTS["1-2.1:1.0"]="$CAN_FOLLOWER:$BITRATE"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.env"
 
 # 是否忽略 CAN 数量检查
 IGNORE_CHECK=false
@@ -57,7 +49,7 @@ check_config() {
     for k in "${!USB_PORTS[@]}"; do
         line_num=$((line_num + 1))
         IFS=':' read -r name bitrate <<< "${USB_PORTS[$k]}"
-        
+
         if [[ -n "${TARGET_NAMES_COUNT[$name]}" ]]; then
             echo "  [$line_num] \"$k\"=\"${USB_PORTS[$k]}\"  ❌ 重复的目标 CAN 名称: '$name'"
             has_duplicate=true
@@ -80,7 +72,7 @@ check_config() {
 init_can() {
     echo ""
     echo "🔧 初始化 CAN 接口..."
-    
+
     # 加载 gs_usb 模块
     if ! sudo modprobe gs_usb; then
         echo "❌ [错误]: 无法加载 gs_usb 模块"
@@ -107,7 +99,7 @@ init_can() {
 
     # 获取系统中的 CAN 接口
     local interfaces=$(ip -br link show type can 2>/dev/null | awk '{print $1}')
-    
+
     if [ -z "$interfaces" ]; then
         echo "❌ 未检测到 CAN 接口，请检查 USB 连接"
         return 1
@@ -130,24 +122,24 @@ init_can() {
     for iface in $interfaces; do
         echo "--------------------------- $iface ------------------------------"
         local bus_info=$(sudo ethtool -i "$iface" 2>/dev/null | grep "bus-info" | awk '{print $2}')
-        
+
         if [ -z "$bus_info" ]; then
             echo "❌ [错误]: 无法获取接口 '$iface' 的 bus-info 信息"
             continue
         fi
-        
+
         echo "[信息]: 系统接口 '$iface' 连接到 USB 端口 '$bus_info'"
-        
+
         if [ -n "${USB_PORTS[$bus_info]}" ]; then
             IFS=':' read -r target_name target_bitrate <<< "${USB_PORTS[$bus_info]}"
-            
+
             # 检查接口是否已激活
             local is_link_up=$(ip link show "$iface" | grep -q "UP" && echo "yes" || echo "no")
             local current_bitrate=$(ip -details link show "$iface" | grep -oP 'bitrate \K\d+' || echo 0)
-            
+
             if [ "$is_link_up" = "yes" ] && [ "$current_bitrate" -eq "$target_bitrate" ]; then
                 echo "[信息]: 接口 '$iface' 已激活，波特率为 $target_bitrate"
-                
+
                 if [ "$iface" != "$target_name" ]; then
                     if ip link show "$target_name" &>/dev/null; then
                         echo "⚠️  [警告]: 无法将 '$iface' 重命名为 '$target_name'，因为 '$target_name' 已存在"
@@ -166,19 +158,19 @@ init_can() {
                     echo "⚠️  [警告]: 无法将 '$iface' 重命名为 '$target_name'，因为 '$target_name' 已存在"
                     continue
                 fi
-                
+
                 if [ "$is_link_up" = "yes" ]; then
                     echo "[信息]: 接口 '$iface' 已激活，但波特率 $current_bitrate 与设定的 $target_bitrate 不匹配"
                 else
                     echo "[信息]: 接口 '$iface' 未激活或波特率未设置"
                 fi
-                
+
                 # 设置接口波特率并激活
                 sudo ip link set "$iface" down
                 sudo ip link set "$iface" type can bitrate $target_bitrate
                 sudo ip link set "$iface" up
                 echo "[信息]: 接口 '$iface' 已设置波特率 $target_bitrate 并激活"
-                
+
                 # 重命名接口
                 if [ "$iface" != "$target_name" ]; then
                     echo "[信息]: 将接口 '$iface' 重命名为 '$target_name'"
@@ -225,46 +217,61 @@ init_can() {
 }
 
 # ============================================================================
-# 检查 CAN 接口是否就绪
+# 检查 CAN 接口是否就绪 (双臂: 4个接口)
 # ============================================================================
 check_can() {
-    local leader_ready=false
-    local follower_ready=false
+    local left_leader_ready=false
+    local right_leader_ready=false
+    local left_follower_ready=false
+    local right_follower_ready=false
 
-    if ip link show "$CAN_LEADER" &>/dev/null; then
-        local state=$(ip link show "$CAN_LEADER" | grep -oP 'state \K\w+')
+    if ip link show "$CAN_LEFT_LEADER" &>/dev/null; then
+        local state=$(ip link show "$CAN_LEFT_LEADER" | grep -oP 'state \K\w+')
         if [ "$state" = "UP" ]; then
-            echo "✅ $CAN_LEADER 已就绪"
-            leader_ready=true
+            echo "✅ $CAN_LEFT_LEADER 已就绪"
+            left_leader_ready=true
         fi
     fi
 
-    if ip link show "$CAN_FOLLOWER" &>/dev/null; then
-        local state=$(ip link show "$CAN_FOLLOWER" | grep -oP 'state \K\w+')
+    if ip link show "$CAN_RIGHT_LEADER" &>/dev/null; then
+        local state=$(ip link show "$CAN_RIGHT_LEADER" | grep -oP 'state \K\w+')
         if [ "$state" = "UP" ]; then
-            echo "✅ $CAN_FOLLOWER 已就绪"
-            follower_ready=true
+            echo "✅ $CAN_RIGHT_LEADER 已就绪"
+            right_leader_ready=true
         fi
     fi
 
-    if $leader_ready && $follower_ready; then
+    if ip link show "$CAN_LEFT_FOLLOWER" &>/dev/null; then
+        local state=$(ip link show "$CAN_LEFT_FOLLOWER" | grep -oP 'state \K\w+')
+        if [ "$state" = "UP" ]; then
+            echo "✅ $CAN_LEFT_FOLLOWER 已就绪"
+            left_follower_ready=true
+        fi
+    fi
+
+    if ip link show "$CAN_RIGHT_FOLLOWER" &>/dev/null; then
+        local state=$(ip link show "$CAN_RIGHT_FOLLOWER" | grep -oP 'state \K\w+')
+        if [ "$state" = "UP" ]; then
+            echo "✅ $CAN_RIGHT_FOLLOWER 已就绪"
+            right_follower_ready=true
+        fi
+    fi
+
+    if $left_leader_ready && $right_leader_ready && $left_follower_ready && $right_follower_ready; then
         return 0
     fi
 
     echo "⚠️  CAN 接口未就绪，尝试初始化..."
     init_can || return 1
-    
+
     # 再次检查
-    if ! ip link show "$CAN_LEADER" &>/dev/null; then
-        echo "❌ $CAN_LEADER 初始化失败"
-        return 1
-    fi
-    
-    if ! ip link show "$CAN_FOLLOWER" &>/dev/null; then
-        echo "❌ $CAN_FOLLOWER 初始化失败"
-        return 1
-    fi
-    
+    for can_name in "$CAN_LEFT_LEADER" "$CAN_RIGHT_LEADER" "$CAN_LEFT_FOLLOWER" "$CAN_RIGHT_FOLLOWER"; do
+        if ! ip link show "$can_name" &>/dev/null; then
+            echo "❌ $can_name 初始化失败"
+            return 1
+        fi
+    done
+
     return 0
 }
 
@@ -272,7 +279,7 @@ check_can() {
 # 主程序
 # ============================================================================
 echo "=========================================="
-echo "  Piper 遥操作启动脚本"
+echo "  Piper 双臂 CAN 初始化脚本"
 echo "=========================================="
 echo ""
 
@@ -283,5 +290,5 @@ check_config || exit 1
 check_can || exit 1
 
 echo ""
-echo "可以继续执行遥操作命令了！"
+echo "可以继续执行双臂遥操作命令了！"
 echo ""
