@@ -4,3 +4,6 @@
 [submodule "lerobot"]
 	path = lerobot
 	url = https://github.com/huggingface/lerobot
+[submodule "piper_sdk"]
+	path = piper_sdk
+	url = https://github.com/agilexrobotics/piper_sdk
