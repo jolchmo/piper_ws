@@ -23,10 +23,41 @@ else
     echo "✅ $CAN_LEADER 已就绪"
 fi
 
-# 构建相机配置
-if [ -n "$CAMERA_PATH" ]; then
-    CAMERAS_CONFIG="{ gripper_cam: {type: opencv, index_or_path: \"$CAMERA_PATH\", fps: $CAMERA_FPS, width: $CAMERA_WIDTH, height: $CAMERA_HEIGHT} }"
-    echo "📷 相机已启用: $CAMERA_PATH"
+# 构建多相机配置
+build_cameras_config() {
+    local config="{"
+    local first=true
+    
+    for cam_name in "${!CAMERAS[@]}"; do
+        cam_path="${CAMERAS[$cam_name]}"
+        if [ -n "$cam_path" ]; then
+            if [ "$first" = true ]; then
+                first=false
+            else
+                config+=", "
+            fi
+            config+="$cam_name: {type: opencv, index_or_path: \"$cam_path\", fps: $CAMERA_FPS, width: $CAMERA_WIDTH, height: $CAMERA_HEIGHT}"
+        fi
+    done
+    
+    config+="}"
+    echo "$config"
+}
+
+# 显示相机信息
+show_cameras_info() {
+    for cam_name in "${!CAMERAS[@]}"; do
+        cam_path="${CAMERAS[$cam_name]}"
+        if [ -n "$cam_path" ]; then
+            echo "📷 相机 $cam_name: $cam_path"
+        fi
+    done
+}
+
+# 检查是否有相机配置
+if [ ${#CAMERAS[@]} -gt 0 ]; then
+    CAMERAS_CONFIG=$(build_cameras_config)
+    show_cameras_info
 else
     CAMERAS_CONFIG="{}"
     echo "📷 相机已禁用"
