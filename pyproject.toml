@@ -3,16 +3,16 @@ name = "piper-ws"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.11"
 dependencies = [
     "pip>=25.3",
     "lerobot",
     "piper-lerobot",
+    "piper-sdk==0.6.0", # 从 PyPI 安装
 ]
 
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+[tool.uv]
+package = false # 声明根项目不是一个可分发的包
 
 [tool.uv.workspace]
 members = [
@@ -26,7 +26,6 @@ torch = [
 ]
 lerobot = { workspace = true, editable = true }
 piper-lerobot = { workspace = true, editable = true }
-
 
 [tool.uv.pip]
 index-url = "https://mirrors.aliyun.com/pypi/simple/"

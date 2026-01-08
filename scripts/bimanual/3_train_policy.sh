@@ -6,21 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config.env"
 
 # 命令行参数覆盖默认值
-DATASET_NAME=${1:-"$DEFAULT_DATASET_NAME"}
+DATASET_NAME=${1:-"$REPO_DATASET_NAME"}
 POLICY=${2:-"$DEFAULT_POLICY"}
-# act
-# diffusion
-# groot
-# pi0
-# pi05
-# rtc
-# sac
-# sarm
-# smolvla
-# tdmpc
-# vqbet
-# wall_x
-# xvla
+
 
 python lerobot/scripts/train.py \
     policy=$POLICY \

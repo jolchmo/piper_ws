@@ -35,15 +35,12 @@ if [ "$1" = "--resume" ]; then
         echo "   用法: ./2_record_dataset.sh --resume <数据集目录名>"
         exit 1
     fi
-    
-    AUTO_MISSION_NAME="$RESUME_DATASET"
-    DATASET_NAME="${DEFAULT_DATASET_NAME%/*}/${RESUME_DATASET}"
+    LOCAL_DATASET_NAME="${LOCAL_DATASET_DIR%/*}/${RESUME_DATASET}"
 else
     # 新建数据集
     NUM_EPISODES=${1:-$DEFAULT_NUM_EPISODES}
     TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-    AUTO_MISSION_NAME="${MISSION_NAME}_${TIMESTAMP}"
-    DATASET_NAME="${DEFAULT_DATASET_NAME%/*}/${AUTO_MISSION_NAME}"
+    LOCAL_DATASET_NAME="${LOCAL_DATASET_DIR%/*}/${MISSION_NAME}_${TIMESTAMP}"
 fi
 
 echo "=========================================="
@@ -111,8 +108,8 @@ else
     echo "📷 相机已禁用"
 fi
 
-echo "📁 数据集名称: $DATASET_NAME"
-echo "📂 存储路径: $LOCAL_DATASET_DIR/$AUTO_MISSION_NAME"
+echo "📁 数据集名称: $MISSION_NAME"
+echo "📂 存储路径: $LOCAL_DATASET_NAME"
 echo ""
 echo "🤖 启动数据录制..."
 echo ""
@@ -129,9 +126,9 @@ python "$SCRIPT_DIR/piper_record.py" \
     --teleop.port="$CAN_LEADER" \
     --teleop.id=leader \
     --teleop.discover_packages_path=piper_lerobot \
-    --dataset.repo_id="$DATASET_NAME" \
+    --dataset.repo_id="$REPO_DATASET_NAME" \
     --dataset.single_task="$MISSION_NAME" \
-    --dataset.root="$LOCAL_DATASET_DIR/$AUTO_MISSION_NAME" \
+    --dataset.root="$LOCAL_DATASET_NAME" \
     --dataset.push_to_hub=false \
     --dataset.num_episodes=$NUM_EPISODES \
     --auto_reset_to_origin=true \

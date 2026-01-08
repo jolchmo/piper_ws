@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config.env"
 
 # 命令行参数覆盖默认值
-DATASET_NAME=${1:-"$DEFAULT_DATASET_NAME"}
+DATASET_NAME=${1:-"$REPO_DATASET_NAME"}
 NUM_EPISODES=${2:-$DEFAULT_NUM_EPISODES}
 
 echo "=========================================="
