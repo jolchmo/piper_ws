@@ -33,13 +33,15 @@ fi
 # dataset.repo_id -> hub
 # dataset.root -> local
 
+RUN_ID="piper_0109_001"
+
 
 lerobot-train \
     --policy.path=$pretrained_path \
     --policy.device=cuda \
     --policy.repo_id=jolch/piper_${POLICY} \
     --policy.input_features='{"observation.images.top_cam": {"shape": [3, 480, 640], "type": "VISUAL"}, "observation.images.gripper_cam": {"shape": [3, 480, 640], "type": "VISUAL"}, "observation.state": {"shape": [7], "type": "STATE"}}' \
-    --output_dir=outputs/model/smolvla_piper \
+    --output_dir=../../../DATA/disk0/junxi//model/smolvla_piper2 \
     --dataset.repo_id=$REPO_DATASET_NAME \
     --dataset.root="$LOCAL_DATASET_DIR/$MISSION_NAME" \
     --robot.discover_packages_path=piper_lerobot \
@@ -47,9 +49,15 @@ lerobot-train \
     --env.type=piper \
     --batch_size=64 \
     --num_workers=8 \
-    --steps=20000  \
-    --eval_freq=500 \
+    --steps=20000 \
+    --eval_freq=-1 \
     --save_freq=500 \
-    --log_freq=100
+    --log_freq=100 \
+    --wandb.enable=true \
+    --wandb.project=piper_training \
+    --wandb.run_id=$RUN_ID \
+    # --resume=true \
 
-#因为没有ffmpeg
+#因为没有ffmpeg，所以使用pyav
+#wandb需要先登录
+
