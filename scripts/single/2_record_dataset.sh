@@ -94,12 +94,16 @@ if [ "$1" = "--resume" ]; then
 else
     # 新建数据集
     NUM_EPISODES=${1:-$DEFAULT_NUM_EPISODES}
-    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    TIMESTAMP=$(date +"%Y%m%d_%H%M")
     LOCAL_DATASET_NAME="$LOCAL_DATASET_DIR/${MISSION_NAME}_$TIMESTAMP"
 fi
 
 
-REPO_DATASET_NAME="$REPO_USER/$MISSION_NAME"
+#整理本地数据集
+#本地数据集如： datasets/piper_pickandplace_20260109_221601
+
+# 如果没有push_to_hub，则不会上传到远程仓库,但是一定需要id
+# REPO_DATASET_NAME="$REPO_USER/$MISSION_NAME"
 
 echo "=========================================="
 echo "📁 数据集名称: $MISSION_NAME"
@@ -122,25 +126,10 @@ python "$SCRIPT_DIR/../piper_record.py" \
     --teleop.port="$CAN_LEADER" \
     --teleop.id=leader \
     --teleop.discover_packages_path=piper_lerobot \
-    --dataset.repo_id="$REPO_DATASET_NAME" \
     --dataset.single_task="$MISSION_NAME" \
     --dataset.root="$LOCAL_DATASET_NAME" \
+    --dataset.repo_id="$REPO_DATASET_NAME" \
     --dataset.push_to_hub=false \
     --dataset.num_episodes=$NUM_EPISODES \
     --auto_reset_to_origin=true \
     --display_data=true
-
-# lerobot-record \
-#     --robot.type=piper_follower \
-#     --robot.port="$CAN_FOLLOWER" \
-#     --robot.id=follower \
-#     --robot.cameras="$CAMERAS_CONFIG" \
-#     --robot.discover_packages_path=piper_lerobot \
-#     --teleop.type=piper_leader \
-#     --teleop.port="$CAN_LEADER" \
-#     --teleop.id=leader \
-#     --teleop.discover_packages_path=piper_lerobot \
-#     --dataset.repo_id=$DATASET_NAME \
-#     --dataset.root="$LOCAL_DATASET_DIR/$MISSION_NAME"  \
-#     --dataset.push_to_hub=false \
-#     --dataset.num_episodes=$NUM_EPISODES \

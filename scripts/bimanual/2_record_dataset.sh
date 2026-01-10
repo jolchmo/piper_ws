@@ -52,6 +52,10 @@ echo "🤖 启动双臂数据录制..."
 echo ""
 
 lerobot-record \
+
+
+python "$SCRIPT_DIR/../piper_record.py" \
+    --resume "$IS_RESUME" \
     --robot.type=piper_bimanual \
     --robot.left_port="$CAN_LEFT_FOLLOWER" \
     --robot.right_port="$CAN_RIGHT_FOLLOWER" \
@@ -63,8 +67,10 @@ lerobot-record \
     --teleop.right_port="$CAN_RIGHT_LEADER" \
     --teleop.id=leader \
     --teleop.discover_packages_path=piper_lerobot \
-    --dataset.repo_id=$DATASET_NAME \
-    --dataset.root="$LOCAL_DATASET_DIR/$MISSION_NAME"  \              # 指定本地保存路径
+    --dataset.single_task="$MISSION_NAME" \
+    --dataset.root="$LOCAL_DATASET_NAME" \
+    --dataset.repo_id="$REPO_DATASET_NAME" \
     --dataset.push_to_hub=false \
     --dataset.num_episodes=$NUM_EPISODES \
+    --auto_reset_to_origin=true \
     --display_data=true

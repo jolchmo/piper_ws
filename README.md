@@ -8,7 +8,12 @@ uv pip install -e ./piper_lerobot
 uv pip install lerobot[smolvla]
 
 
-上传模型
-hf upload-large-folder jolch/piper_dp ../../../DATA/disk0/junxi/model/smolvla_piper_0109_dp/checkpoints/last/pretrained_model/  --repo-type model
+# 绑定相机(重要)
+查看docs/bind_cam
 
-download jolch/piper_pickandplace   --repo-type dataset   --local-dir /DATA/disk0/junxi/.cache/huggingface/lerobot/jolch/piper_pickandplace
+
+
+
+
+可视化数据集
+lerobot-dataset-viz --root '/home/john/piper_ws/datasets/piper_pickandplace_20260109_221601' --repo-id jolch/piper_pickandplace --episode-index 1

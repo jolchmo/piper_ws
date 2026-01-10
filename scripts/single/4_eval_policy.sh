@@ -5,18 +5,8 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config.env"
 
-# 命令行参数
-if [ "$1" = "--force" ]; then
-    echo "❌强制覆盖现有评估数据集"
-    rm -rf "$LOCAL_DATASET_DIR/eval_$MISSION_NAME"
-fi
 
-# 使用绝对路径，确保无论从哪个目录运行脚本都能正确找到模型
-CHECKPOINT="$(cd "$SCRIPT_DIR/../.." && pwd)/outputs/model/vla_0110/checkpoints/002000/pretrained_model"
-# CHECKPOINT="$REPO_USER/model_name"
-# CHECKPOINT="$REPO_USER/piper_dp"
 
-NUM_EPISODES=$DEFAULT_NUM_EPISODES
 
 
 # 构建多相机配置
@@ -59,11 +49,40 @@ else
     echo "📷 相机已禁用"
 fi
 
-EVAL_UNIT="smolvla_0110_001"
-EVAL_REPO_DATASET_NAME="$REPO_USER/eval_${MISSION_NAME}_$EVAL_UNIT"
-EVAL_DATASET_NAME="$LOCAL_DATASET_DIR/eval_${MISSION_NAME}_$EVAL_UNIT"
-echo "$EVAL_REPO_DATASET_NAME"
+NUM_EPISODES=$DEFAULT_NUM_EPISODES
+
+
+MODEL_NAME=${1:-"None"}
+if [ "$MODEL_NAME" = "None" ]; then
+    echo "⚠️ 未指定模型名称，请在命令行第一个参数中提供模型名称"
+    exit 1
+fi
+
+if ls  "$LOCAL_MODEL_DIR/$MODEL_NAME" | grep -q "checkpoints"; then
+    echo "✅ 找到模型 $MODEL_NAME"
+else
+    echo "❌ 未找到模型 $MODEL_NAME，请检查模型名称是否正确"
+    exit 1
+fi
+
+STEPS=${2:-"last"}
+CHECKPOINT="$LOCAL_MODEL_DIR/$MODEL_NAME/checkpoints/$STEPS/pretrained_model"
+EVAL_DATASET_NAME="$LOCAL_DATASET_DIR/eval_$RUN_ID"
+EVAL_REPO_DATASET_NAME="$REPO_USER/eval_$RUN_ID"
+
+
+
+echo "=========================================="
+echo "  Piper 单臂策略部署脚本"
+echo "=========================================="
+echo "RUN_ID" : $RUN_ID
+echo "模型: $CHECKPOINT"
+echo "任务: $MISSION_NAME"
 echo "使用权重$CHECKPOINT 评估策略，评估数据集保存在 $EVAL_DATASET_NAME"
+echo "=========================================="
+
+
+
 
 python "$SCRIPT_DIR/../piper_record.py" \
     --robot.type=piper_follower \
