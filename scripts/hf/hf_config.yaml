@@ -1,0 +1,42 @@
+# HuggingFace 管理配置文件
+# 在这里配置你常用的数据集和模型信息
+
+# 你的用户名
+username: "jolch"
+
+# 默认设置
+defaults:
+  # 默认仓库类型 (dataset 或 model)
+  repo_type: "dataset"
+  # 默认是否私有
+  private: false
+  # 默认标签
+  default_tag: "v1.0"
+
+# 常用数据集配置
+datasets:
+  - repo_id: "jolch/piper_pickandplace"
+    description: "Piper pick and place dataset"
+    tags:
+      - "v1.0"
+    
+  # 可以添加更多数据集
+  # - repo_id: "jolch/another_dataset"
+  #   description: "Another dataset description"
+  #   tags:
+  #     - "v1.0"
+
+# 常用模型配置
+models:
+  # - repo_id: "jolch/model_name"
+  #   description: "Model description"
+  #   tags:
+  #     - "v1.0"
+
+# 批量操作配置
+batch_operations:
+  # 需要添加标签的仓库列表
+  tag_repos:
+    - repo_id: "jolch/piper_pickandplace"
+      tag: "v1.0"
+      repo_type: "dataset"
