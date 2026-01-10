@@ -1,47 +1,5 @@
 #!/bin/bash
 # Piper 数据录制脚本 - 支持 Reset 时自动回零位
-#
-# 键盘控制：
-#   - 右箭头 →: 提前结束当前 episode
-#   - 左箭头 ←: 重新录制当前 episode
-#   - ESC: 停止整个录制过程
-
-
-# 加载配置文件
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/config.env"
-
-# 参数说明:
-#   --resume <数据集目录名>: 断点续采指定数据集
-#   $1: episode 数量 (可选，默认使用 config.env 中的值)
-#
-# 使用示例:
-#   ./2_record_dataset.sh                    # 新建数据集，使用默认 episode 数
-#   ./2_record_dataset.sh 20                 # 新建数据集，录制 20 个 episode
-#   ./2_record_dataset.sh --resume piper_pickandplace_20260107_232138  # 断点续采
-
-# 解析参数
-IS_RESUME="false"
-RESUME_DATASET=""
-
-# 检查是否有 --resume 参数
-if [ "$1" = "--resume" ]; then
-    IS_RESUME="true"
-    RESUME_DATASET="$2"
-    NUM_EPISODES=${3:-$DEFAULT_NUM_EPISODES}
-    
-    if [ -z "$RESUME_DATASET" ]; then
-        echo "❌ 错误: --resume 需要指定数据集目录名"
-        echo "   用法: ./2_record_dataset.sh --resume <数据集目录名>"
-        exit 1
-    fi
-    LOCAL_DATASET_NAME="${LOCAL_DATASET_DIR%/*}/${RESUME_DATASET}"
-else
-    # 新建数据集
-    NUM_EPISODES=${1:-$DEFAULT_NUM_EPISODES}
-    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-    LOCAL_DATASET_NAME="${LOCAL_DATASET_DIR%/*}/${MISSION_NAME}_${TIMESTAMP}"
-fi
 
 echo "=========================================="
 echo "  Piper 数据采集脚本 (支持自动回零位)"
@@ -52,6 +10,11 @@ echo "  → 右箭头: 结束当前 episode"
 echo "  ← 左箭头: 重新录制当前 episode"
 echo "  ESC: 停止录制"
 echo ""
+
+# 加载配置文件
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config.env"
+
 
 # 检查 can_leader 是否存在
 if ! ip link show "$CAN_LEADER" &>/dev/null; then
@@ -108,14 +71,47 @@ else
     echo "📷 相机已禁用"
 fi
 
+
+
+
+# 支持resume功能，断点续录制数据集
+# 解析参数
+IS_RESUME="false"
+RESUME_DATASET=""
+
+# 检查是否有 --resume 参数
+if [ "$1" = "--resume" ]; then
+    IS_RESUME="true"
+    RESUME_DATASET="$2"
+    NUM_EPISODES=${3:-$DEFAULT_NUM_EPISODES}
+    
+    if [ -z "$RESUME_DATASET" ]; then
+        echo "❌ 错误: --resume 需要指定数据集目录名"
+        echo "   用法: ./2_record_dataset.sh --resume <数据集目录名>"
+        exit 1
+    fi
+    LOCAL_DATASET_NAME="$LOCAL_DATASET_DIR/$RESUME_DATASET"
+else
+    # 新建数据集
+    NUM_EPISODES=${1:-$DEFAULT_NUM_EPISODES}
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    LOCAL_DATASET_NAME="$LOCAL_DATASET_DIR/${MISSION_NAME}_$TIMESTAMP"
+fi
+
+
+REPO_DATASET_NAME="$REPO_USER/$MISSION_NAME"
+
+echo "=========================================="
 echo "📁 数据集名称: $MISSION_NAME"
 echo "📂 存储路径: $LOCAL_DATASET_NAME"
-echo ""
-echo "🤖 启动数据录制..."
-echo ""
+echo "📂 远程仓库: $REPO_DATASET_NAME"
+echo "🎯 采集任务: $NUM_EPISODES 个 episode "
+echo "=========================================="
+
+
 
 # 使用自定义的 piper_record.py 脚本，支持 Reset 时自动回零位
-python "$SCRIPT_DIR/piper_record.py" \
+python "$SCRIPT_DIR/../piper_record.py" \
     --resume "$IS_RESUME" \
     --robot.type=piper_follower \
     --robot.port="$CAN_FOLLOWER" \

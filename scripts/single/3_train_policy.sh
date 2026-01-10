@@ -7,7 +7,8 @@ source "$SCRIPT_DIR/config.env"
 
 
 # 命令行参数覆盖默认值
-POLICY=${1:-"$DEFAULT_POLICY"}
+MISSION_NAME=${1:-"$MISSION_NAME"}
+POLICY=${2:-"$DEFAULT_POLICY"}
 
 
 echo "=========================================="
@@ -26,23 +27,26 @@ else
     pretrained_path=""
 fi
 
+#model 
 #policy.repo_id  -> hub
 #output_dir -> local
 
+#dataset
 # dataset.repo_id -> hub
 # dataset.root -> local
 
-
-RUN_ID="piper_0110_smol"
-
+RUN_ID="piper_0109_001"
+LOCAL_DATASET_NAME="$LOCAL_DATASET_DIR/$MISSION_NAME"
+REPO_DATASET_NAME="$REPO_USER/$MISSION_NAME"
 
 lerobot-train \
-    --policy.type=$POLICY \
+    --policy.path=$pretrained_path \
     --policy.device=cuda \
     --policy.repo_id=jolch/piper_${POLICY} \
     --policy.input_features='{"observation.images.top_cam": {"shape": [3, 480, 640], "type": "VISUAL"}, "observation.images.gripper_cam": {"shape": [3, 480, 640], "type": "VISUAL"}, "observation.state": {"shape": [7], "type": "STATE"}}' \
-    --output_dir=../../../DATA/disk0/junxi/model/piper_smaolvla_0110 \
+    --output_dir=../../../DATA/disk0/junxi/model/smolvla_piper2 \
     --dataset.repo_id=$REPO_DATASET_NAME \
+    --dataset.root="$LOCAL_DATASET_NAME" \
     --robot.discover_packages_path=piper_lerobot \
     --dataset.video_backend=pyav\
     --env.type=piper \
@@ -50,13 +54,12 @@ lerobot-train \
     --num_workers=8 \
     --steps=20000 \
     --eval_freq=-1 \
-    --save_freq=2000 \
+    --save_freq=500 \
     --log_freq=100 \
     --wandb.enable=true \
     --wandb.project=piper_training \
     --wandb.run_id=$RUN_ID \
     # --resume=true \
-    # --dataset.root="$LOCAL_DATASET_DIR/$MISSION_NAME" \
 
 #因为没有ffmpeg，所以使用pyav
 #wandb需要先登录
