@@ -49,7 +49,8 @@ echo "=========================================="
 
 
 lerobot-train \
-    --policy.type=$POLICY \
+    --policy.type=smolvla \
+    --policy.pretrained_path="lerobot/smolvla_base" \
     --policy.device=cuda \
     --policy.input_features='{"observation.images.top_cam": {"shape": [3, 480, 640], "type": "VISUAL"}, "observation.images.gripper_cam": {"shape": [3, 480, 640], "type": "VISUAL"}, "observation.state": {"shape": [7], "type": "STATE"}}' \
     --output_dir=$LOCAL_MODEL_NAME \
