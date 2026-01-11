@@ -7,7 +7,6 @@ source "$SCRIPT_DIR/config.env"
 
 # 命令行参数覆盖默认值
 DATASET_NAME=${1:-"$REPO_DATASET_NAME"}
-NUM_EPISODES=${2:-$DEFAULT_NUM_EPISODES}
 
 echo "=========================================="
 echo "  Piper 双臂数据采集脚本"
@@ -51,7 +50,6 @@ echo ""
 echo "🤖 启动双臂数据录制..."
 echo ""
 
-lerobot-record \
 
 
 python "$SCRIPT_DIR/../piper_record.py" \

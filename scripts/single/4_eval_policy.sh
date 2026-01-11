@@ -6,6 +6,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config.env"
 
 
+# 输入是模型，可以是本地的也可以是远程huggingface的，一定需要指定所使用的模型
+# 输出以"eval_${ROBOT}_${DEFAULT_POLICY}_${TIMESTAMP}"命名保存数据集
+# EVAL_DATASET_NAME 是评估所产生的数据集，一定会保存到本地，没有保存到远程huggingface的必要
+
+# 可以是jolch/piper_smolvla 也可以是本地路径 ./outputs/smolvla_202406_1234
+EVAL_MODEL_NAME=${1:-"None"}
+
+
+if [ "$EVAL_MODEL_NAME" != "None" ]; then
+    echo "评估模型一定需要指定模型，使用命令行第一个参数覆盖配置文件中的默认模型"
+    exit 1
+fi
 
 
 
@@ -49,27 +61,8 @@ else
     echo "📷 相机已禁用"
 fi
 
-NUM_EPISODES=$DEFAULT_NUM_EPISODES
 
-
-MODEL_NAME=${1:-"None"}
-if [ "$MODEL_NAME" = "None" ]; then
-    echo "⚠️ 未指定模型名称，请在命令行第一个参数中提供模型名称"
-    exit 1
-fi
-
-if ls  "$LOCAL_MODEL_DIR/$MODEL_NAME" | grep -q "checkpoints"; then
-    echo "✅ 找到模型 $MODEL_NAME"
-else
-    echo "❌ 未找到模型 $MODEL_NAME，请检查模型名称是否正确"
-    exit 1
-fi
-
-STEPS=${2:-"last"}
-CHECKPOINT="$LOCAL_MODEL_DIR/$MODEL_NAME/checkpoints/$STEPS/pretrained_model"
-EVAL_DATASET_NAME="$LOCAL_DATASET_DIR/eval_$RUN_ID"
-EVAL_REPO_DATASET_NAME="$REPO_USER/eval_$RUN_ID"
-
+CHECKPOINT=$EVAL_MODEL_NAME
 
 
 echo "=========================================="

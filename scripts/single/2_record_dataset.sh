@@ -1,6 +1,10 @@
 #!/bin/bash
 # Piper 数据录制脚本 - 支持 Reset 时自动回零位
 
+# 输入是自己手动采的数据
+# 输出是数据集，一定会保存到本地
+# 可以通过${DATASET_PUSH_TO_HUB}控制是否上传到远程huggingface，远端是REPO_DATASET_NAME
+
 echo "=========================================="
 echo "  Piper 数据采集脚本 (支持自动回零位)"
 echo "=========================================="
@@ -83,7 +87,6 @@ RESUME_DATASET=""
 if [ "$1" = "--resume" ]; then
     IS_RESUME="true"
     RESUME_DATASET="$2"
-    NUM_EPISODES=${3:-$DEFAULT_NUM_EPISODES}
     
     if [ -z "$RESUME_DATASET" ]; then
         echo "❌ 错误: --resume 需要指定数据集目录名"
@@ -91,11 +94,6 @@ if [ "$1" = "--resume" ]; then
         exit 1
     fi
     LOCAL_DATASET_NAME="$LOCAL_DATASET_DIR/$RESUME_DATASET"
-else
-    # 新建数据集
-    NUM_EPISODES=${1:-$DEFAULT_NUM_EPISODES}
-    TIMESTAMP=$(date +"%Y%m%d_%H%M")
-    LOCAL_DATASET_NAME="$LOCAL_DATASET_DIR/${MISSION_NAME}_$TIMESTAMP"
 fi
 
 
@@ -129,7 +127,7 @@ python "$SCRIPT_DIR/../piper_record.py" \
     --dataset.single_task="$MISSION_NAME" \
     --dataset.root="$LOCAL_DATASET_NAME" \
     --dataset.repo_id="$REPO_DATASET_NAME" \
-    --dataset.push_to_hub=false \
+    --dataset.push_to_hub=$DATASET_PUSH_TO_HUB \
     --dataset.num_episodes=$NUM_EPISODES \
     --auto_reset_to_origin=true \
     --display_data=true
