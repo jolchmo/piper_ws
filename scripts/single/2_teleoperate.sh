@@ -36,7 +36,7 @@ build_cameras_config() {
             else
                 config+=", "
             fi
-            config+="$cam_name: {type: opencv, index_or_path: \"$cam_path\", fps: $CAMERA_FPS, width: $CAMERA_WIDTH, height: $CAMERA_HEIGHT}"
+            config+="$cam_name: {type: intelrealsense, serial_number_or_name: \"$cam_path\", fps: $CAMERA_FPS, width: $CAMERA_WIDTH, height: $CAMERA_HEIGHT}"
         fi
     done
     

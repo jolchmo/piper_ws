@@ -11,32 +11,18 @@ Piper 机械臂数据录制脚本 - 支持 Reset 时自动回零位
     - ESC: 停止整个录制过程
 """
 
-import logging
-import time
-import traceback
-from dataclasses import asdict, dataclass, field
-from pathlib import Path
-from pprint import pformat
-from typing import Any
-from functools import cache
-
-from lerobot.cameras import CameraConfig  # noqa: F401
-from lerobot.cameras.opencv.configuration_opencv import (  # noqa: F401
-    OpenCVCameraConfig,
+from lerobot.utils.visualization_utils import init_rerun, log_rerun_data
+from lerobot.utils.utils import get_safe_torch_device, init_logging, log_say
+from lerobot.utils.robot_utils import precise_sleep
+from lerobot.utils.control_utils import (
+    is_headless,
+    predict_action,
+    sanity_check_dataset_name,
+    sanity_check_dataset_robot_compatibility,
 )
-from lerobot.configs import parser
-from lerobot.configs.policies import PreTrainedConfig
-from lerobot.datasets.image_writer import safe_stop_image_writer
-from lerobot.datasets.lerobot_dataset import LeRobotDataset
-from lerobot.datasets.pipeline_features import (
-    aggregate_pipeline_dataset_features,
-    create_initial_features,
-)
-from lerobot.datasets.utils import build_dataset_frame, combine_feature_dicts
-from lerobot.datasets.video_utils import VideoEncodingManager
-from lerobot.policies.factory import make_policy, make_pre_post_processors
-from lerobot.policies.pretrained import PreTrainedPolicy
-from lerobot.policies.utils import make_robot_action
+from lerobot.utils.constants import ACTION, OBS_STR
+from lerobot.teleoperators.keyboard.teleop_keyboard import KeyboardTeleop
+from lerobot.processor.rename_processor import rename_stats
 from lerobot.processor import (
     PolicyAction,
     PolicyProcessorPipeline,
@@ -45,25 +31,47 @@ from lerobot.processor import (
     RobotProcessorPipeline,
     make_default_processors,
 )
-from lerobot.processor.rename_processor import rename_stats
+from lerobot.policies.utils import make_robot_action
+from lerobot.policies.pretrained import PreTrainedPolicy
+from lerobot.policies.factory import make_policy, make_pre_post_processors
+from lerobot.datasets.video_utils import VideoEncodingManager
+from lerobot.datasets.utils import build_dataset_frame, combine_feature_dicts
+from lerobot.datasets.pipeline_features import (
+    aggregate_pipeline_dataset_features,
+    create_initial_features,
+)
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
+from lerobot.datasets.image_writer import safe_stop_image_writer
+from lerobot.configs.policies import PreTrainedConfig
+from lerobot.configs import parser
+from lerobot.utils.import_utils import register_third_party_plugins
+import logging
+import os
+import time
+import traceback
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from pprint import pformat
+from typing import Any
+from functools import cache
+
+# 优先使用本地缓存，避免重复下载模型
+os.environ.setdefault("HF_HUB_ETAG_TIMEOUT", "0")
+os.environ.setdefault("HUGGINGFACE_HUB_CACHE", os.path.expanduser("~/.cache/huggingface/hub"))
+
+# 必须在所有 lerobot 导入之前注册第三方插件（如 intelrealsense 相机）
+register_third_party_plugins()
+
+from lerobot.cameras import CameraConfig  # noqa: F401
+from lerobot.cameras.opencv.configuration_opencv import (  # noqa: F401
+    OpenCVCameraConfig,
+)
 from lerobot.robots import Robot, RobotConfig, make_robot_from_config  # noqa: F401
 from lerobot.teleoperators import (  # noqa: F401
     Teleoperator,
     TeleoperatorConfig,
     make_teleoperator_from_config,
 )
-from lerobot.teleoperators.keyboard.teleop_keyboard import KeyboardTeleop
-from lerobot.utils.constants import ACTION, OBS_STR
-from lerobot.utils.control_utils import (
-    is_headless,
-    predict_action,
-    sanity_check_dataset_name,
-    sanity_check_dataset_robot_compatibility,
-)
-from lerobot.utils.import_utils import register_third_party_plugins
-from lerobot.utils.robot_utils import precise_sleep
-from lerobot.utils.utils import get_safe_torch_device, init_logging, log_say
-from lerobot.utils.visualization_utils import init_rerun, log_rerun_data
 
 logger = logging.getLogger(__name__)
 
@@ -410,6 +418,10 @@ def piper_record(cfg: PiperRecordConfig) -> LeRobotDataset:
 
         policy = None
         if cfg.policy is not None:
+            # 如果指定了微调模型路径，直接从该路径加载权重，
+            # 避免重复下载基础模型
+            if cfg.policy.pretrained_path:
+                cfg.policy.pretrained_name_or_path = cfg.policy.pretrained_path
             policy = make_policy(cfg.policy, ds_meta=dataset.meta)
         preprocessor = None
         postprocessor = None
@@ -540,7 +552,6 @@ def piper_record(cfg: PiperRecordConfig) -> LeRobotDataset:
 
 
 def main():
-    register_third_party_plugins()
     piper_record()
 
 

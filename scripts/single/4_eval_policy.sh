@@ -60,7 +60,7 @@ build_cameras_config() {
             else
                 config+=", "
             fi
-            config+="$cam_name: {type: opencv, index_or_path: \"$cam_path\", fps: $CAMERA_FPS, width: $CAMERA_WIDTH, height: $CAMERA_HEIGHT}"
+            config+="$cam_name: {type: intelrealsense, serial_number_or_name: \"$cam_path\", fps: $CAMERA_FPS, width: $CAMERA_WIDTH, height: $CAMERA_HEIGHT}"
         fi
     done
     
@@ -102,19 +102,19 @@ echo "=========================================="
 
 
 
-python "$SCRIPT_DIR/../piper_record.py" \
+# python "$SCRIPT_DIR/../piper_record.py" \
+lerobot-record \
     --robot.type=piper_follower \
     --robot.port="$CAN_FOLLOWER" \
     --robot.id=follower \
     --robot.cameras="$CAMERAS_CONFIG" \
     --robot.discover_packages_path=piper_lerobot \
     --dataset.repo_id="$EVAL_REPO_DATASET_NAME" \
-    --dataset.single_task="$MISSION_NAME" \
+    --dataset.single_task="Place the toy into the green bowl" \
     --dataset.root="$EVAL_DATASET_NAME" \
     --dataset.push_to_hub=false \
     --dataset.num_episodes=$NUM_EPISODES \
     --policy.path="$CHECKPOINT" \
     --policy.device=cuda \
-    --auto_reset_to_origin=true \
     --display_data=true \
     # --dataset.rename_map='{"observation.images.gripper_cam": "observation.images.camera1", "observation.images.top_cam": "observation.images.camera2"}' \

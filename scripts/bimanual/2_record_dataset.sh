@@ -52,7 +52,7 @@ echo ""
 
 
 
-python "$SCRIPT_DIR/../piper_record.py" \
+lerobot-record \
     --resume "$IS_RESUME" \
     --robot.type=piper_bimanual \
     --robot.left_port="$CAN_LEFT_FOLLOWER" \

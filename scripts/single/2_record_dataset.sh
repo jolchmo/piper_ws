@@ -6,12 +6,11 @@
 # 可以通过${DATASET_PUSH_TO_HUB}控制是否上传到远程huggingface，远端是REPO_DATASET_NAME
 
 echo "=========================================="
-echo "  Piper 数据采集脚本 (支持自动回零位)"
+echo "  Piper 数据采集脚本"
 echo "=========================================="
 echo ""
 echo "键盘控制："
 echo "  → 右箭头: 结束当前 episode"
-echo "  ← 左箭头: 重新录制当前 episode"
 echo "  ESC: 停止录制"
 echo ""
 
@@ -48,7 +47,7 @@ build_cameras_config() {
             else
                 config+=", "
             fi
-            config+="$cam_name: {type: opencv, index_or_path: \"$cam_path\", fps: $CAMERA_FPS, width: $CAMERA_WIDTH, height: $CAMERA_HEIGHT}"
+            config+="$cam_name: {type: intelrealsense, serial_number_or_name: \"$cam_path\", fps: $CAMERA_FPS, width: $CAMERA_WIDTH, height: $CAMERA_HEIGHT}"
         fi
     done
     
@@ -77,29 +76,6 @@ fi
 
 
 
-
-# 支持resume功能，断点续录制数据集
-# 解析参数
-IS_RESUME="false"
-RESUME_DATASET=""
-
-# 检查是否有 --resume 参数
-if [ "$1" = "--resume" ]; then
-    IS_RESUME="true"
-    RESUME_DATASET="$2"
-    
-    if [ -z "$RESUME_DATASET" ]; then
-        echo "❌ 错误: --resume 需要指定数据集目录名"
-        echo "   用法: ./2_record_dataset.sh --resume <数据集目录名>"
-        exit 1
-    fi
-    LOCAL_DATASET_NAME="$LOCAL_DATASET_DIR/$RESUME_DATASET"
-fi
-
-
-#整理本地数据集
-#本地数据集如： datasets/piper_pickandplace_20260109_221601
-
 # 如果没有push_to_hub，则不会上传到远程仓库,但是一定需要id
 # REPO_DATASET_NAME="$REPO_USER/$MISSION_NAME"
 
@@ -112,9 +88,16 @@ echo "=========================================="
 
 
 
+DATASET_NAME="pig_rgy"
+LOCAL_DATASET_NAME="$LOCAL_DATASET_DIR/${DATASET_NAME}_dataset"
+REPO_DATASET_NAME="$REPO_USER/${DATASET_NAME}_dataset"
+DATASET_PUSH_TO_HUB=true
+NUM_EPISODES=50
+
 # 使用自定义的 piper_record.py 脚本，支持 Reset 时自动回零位
-python "$SCRIPT_DIR/../piper_record.py" \
-    --resume "$IS_RESUME" \
+# python "$SCRIPT_DIR/../piper_record.py" \
+lerobot-record \
+    --resume "true" \
     --robot.type=piper_follower \
     --robot.port="$CAN_FOLLOWER" \
     --robot.id=follower \
@@ -124,10 +107,9 @@ python "$SCRIPT_DIR/../piper_record.py" \
     --teleop.port="$CAN_LEADER" \
     --teleop.id=leader \
     --teleop.discover_packages_path=piper_lerobot \
-    --dataset.single_task="$MISSION_NAME" \
+    --dataset.single_task="Place the toy into the yellow bowl" \
     --dataset.root="$LOCAL_DATASET_NAME" \
     --dataset.repo_id="$REPO_DATASET_NAME" \
     --dataset.push_to_hub=$DATASET_PUSH_TO_HUB \
     --dataset.num_episodes=$NUM_EPISODES \
-    --auto_reset_to_origin=true \
     --display_data=true
