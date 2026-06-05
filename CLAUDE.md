@@ -49,9 +49,28 @@ hardware.
 
 ## Operator workflow (the core of this repo)
 
+The friendliest entry point is the interactive menu at the repo root:
+
+```bash
+./run.sh        # pick single/bimanual, then pick a stage
+```
+
 `scripts/single/` (single arm) and `scripts/bimanual/` (two arms) each contain a
-numbered pipeline. All scripts `source config.env` for their settings — **edit
-`config.env`, not the scripts**, for ports/cameras/policy/paths.
+numbered pipeline that `run.sh` dispatches to (and that can still be run directly).
+All scripts `source config.env` then `source scripts/lib.sh` (shared helpers for
+camera-config JSON, `input_features` JSON, CAN readiness, and the confirm prompt).
+**Edit `config.env`, not the scripts**, for ports/cameras/policy/paths.
+
+Every "per-run" value (`DATASET_NAME`, `SINGLE_TASK`, `NUM_EPISODES`, `POLICY`,
+`TRAIN_STEPS`, push-to-hub toggles, …) lives at the top of `config.env` as
+`${VAR:-default}`, so it can be overridden inline without editing the file:
+
+```bash
+NUM_EPISODES=30 bash scripts/single/2_record_dataset.sh
+POLICY=act TRAIN_STEPS=50000 bash scripts/single/3_train_policy.sh
+```
+
+Set `AUTO_CONFIRM=1` to skip the pre-launch confirmation prompt (unattended runs).
 
 | Stage | Single-arm script | Purpose |
 |-------|-------------------|---------|
@@ -61,8 +80,9 @@ numbered pipeline. All scripts `source config.env` for their settings — **edit
 | 3 | `3_train_policy.sh` | Train a policy with `lerobot-train` (`torchrun` multi-GPU) |
 | 4 | `4_eval_policy.sh` | Deploy a checkpoint and record eval episodes (model path is required `$1`) |
 
-The record/teleop/eval scripts auto-invoke `1_setup.sh` if the CAN interface is
-missing. Run a stage directly, e.g. `bash scripts/single/2_record_dataset.sh`.
+The record/teleop/eval scripts auto-invoke `1_setup.sh` (via `ensure_can` in
+`scripts/lib.sh`) if a CAN interface is missing. Run a stage directly, e.g.
+`bash scripts/single/2_record_dataset.sh`, or via `./run.sh`.
 
 `task.sh` wraps a stage script for **Slurm** (`srun bash <task_file>`); useful for
 queued training on a cluster.
@@ -78,13 +98,15 @@ queued training on a cluster.
   Empty the `CAMERAS` array to disable cameras. See `docs/cam_bind.md` for binding
   RealSense devices to stable `/dev` symlinks via udev rules.
 - `POLICY`, `ROBOT`, `REPO_USER`, and `LOCAL_DATASET_DIR`/`LOCAL_MODEL_DIR` drive
-  generated dataset/model names. The full policy list is enumerated in the comment
-  block at the bottom of `config.env` (act, diffusion, pi0, smolvla, wall_x, …).
-
-> Note: several scripts contain hardcoded `/home/junxi/...` paths and dataset names
-> (e.g. `DATASET_NAME="pig_rgy"` hardcoded in `2_record_dataset.sh`/`3_train_policy.sh`
-> overriding config values). Treat these as per-run edits, not stable config — check
-> before reusing on another machine.
+  generated dataset/model names (the derived `*_NAME` vars at the bottom of
+  `config.env`). The full policy list is enumerated in the comment block at the
+  bottom of `config.env` (act, diffusion, pi0, smolvla, wall_x, …).
+- Single-arm `3_train_policy.sh` is **wall_x-specific** (it sets the wall_x
+  pretrained path, `flash_attention_2`, `bfloat16`); only its tunables come from
+  `config.env`. `--policy.input_features` is generated from `CAMERAS` + `STATE_DIM`
+  by `build_input_features`, so adding/removing a camera no longer requires editing
+  the train script. Bimanual `3_train_policy.sh` still has a hardcoded
+  `input_features` that needs manual review before a real bimanual run.
 
 ## HuggingFace Hub
 
