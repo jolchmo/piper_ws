@@ -103,10 +103,11 @@ queued training on a cluster.
   bottom of `config.env` (act, diffusion, pi0, smolvla, wall_x, …).
 - Single-arm `3_train_policy.sh` is **wall_x-specific** (it sets the wall_x
   pretrained path, `flash_attention_2`, `bfloat16`); only its tunables come from
-  `config.env`. `--policy.input_features` is generated from `CAMERAS` + `STATE_DIM`
-  by `build_input_features`, so adding/removing a camera no longer requires editing
-  the train script. Bimanual `3_train_policy.sh` still has a hardcoded
-  `input_features` that needs manual review before a real bimanual run.
+  `config.env`. Both single and bimanual generate `--policy.input_features` from
+  `CAMERAS` + `STATE_DIM` via `build_input_features` (single `STATE_DIM=7`,
+  bimanual `STATE_DIM=14`), so adding/removing a camera no longer requires editing
+  the train script. Bimanual cameras are populated as commented examples in
+  `config.env` — fill in real RealSense serials before a vision run.
 
 ## HuggingFace Hub
 

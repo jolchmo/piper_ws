@@ -10,8 +10,9 @@ source "$WS_DIR/scripts/lib.sh"
 TRAIN_DATASET_ROOT="${1:-$LOCAL_DATASET_NAME}"
 POLICY="${2:-$POLICY}"
 
-# 注意：下面的 input_features 仍按「top_cam + gripper_cam + state(7)」硬编码，
-# 双臂实际为单相机 + 14 维状态，正式训练前请按真实数据集特征调整。
+# input_features 由 CAMERAS + STATE_DIM(=14) 自动生成，增减相机无需改本脚本
+INPUT_FEATURES=$(build_input_features)
+
 echo "=========================================="
 echo "  Piper 双臂策略训练"
 echo "------------------------------------------"
@@ -19,13 +20,14 @@ echo "  策略     : $POLICY"
 echo "  数据集   : $TRAIN_DATASET_ROOT"
 echo "  输出目录 : $LOCAL_MODEL_NAME (push=$MODEL_PUSH_TO_HUB)"
 echo "  训练步数 : $TRAIN_STEPS   batch=$BATCH_SIZE"
+echo "  状态维度 : $STATE_DIM"
 echo "=========================================="
 confirm_or_exit
 
 lerobot-train \
     --policy.type=$POLICY \
     --policy.device=cuda \
-    --policy.input_features='{"observation.images.top_cam": {"shape": [3, 480, 640], "type": "VISUAL"}, "observation.images.gripper_cam": {"shape": [3, 480, 640], "type": "VISUAL"}, "observation.state": {"shape": [7], "type": "STATE"}}' \
+    --policy.input_features="$INPUT_FEATURES" \
     --output_dir=$LOCAL_MODEL_NAME \
     --policy.repo_id=$REPO_MODEL_NAME \
     --policy.push_to_hub=$MODEL_PUSH_TO_HUB \

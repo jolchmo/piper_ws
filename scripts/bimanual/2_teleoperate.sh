@@ -8,18 +8,14 @@ source "$WS_DIR/scripts/lib.sh"
 
 ensure_can "$SCRIPT_DIR/1_setup.sh" \
     "$CAN_LEFT_LEADER" "$CAN_RIGHT_LEADER" "$CAN_LEFT_FOLLOWER" "$CAN_RIGHT_FOLLOWER"
-
-# 双臂当前用单个 OpenCV 相机
-if [ -n "$CAMERA_PATH" ]; then
-    CAMERAS_CONFIG="{ gripper_cam: {type: opencv, index_or_path: \"$CAMERA_PATH\", fps: $CAMERA_FPS, width: $CAMERA_WIDTH, height: $CAMERA_HEIGHT} }"
-    echo "  📷 相机已启用: $CAMERA_PATH"
-else
-    CAMERAS_CONFIG="{}"
-    echo "  📷 相机已禁用"
-fi
+CAMERAS_CONFIG=$(build_cameras_config)
 
 echo "=========================================="
 echo "  Piper 双臂遥操作"
+echo "------------------------------------------"
+echo "  leader   : $CAN_LEFT_LEADER / $CAN_RIGHT_LEADER"
+echo "  follower : $CAN_LEFT_FOLLOWER / $CAN_RIGHT_FOLLOWER"
+show_cameras_info
 echo "=========================================="
 confirm_or_exit
 
