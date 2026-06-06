@@ -44,7 +44,7 @@ case "$stage" in
     3) SCRIPT="2_record_dataset.sh" ;;
     4) SCRIPT="3_train_policy.sh" ;;
     5) SCRIPT="4_eval_policy.sh"
-       read -p "请输入模型路径或 HF 仓库 (留空则用 config.env 的 EVAL_MODEL): " model
+       read -p "请输入模型路径或 HF 仓库 (留空则按 config.env 的 MODEL_SOURCE 取本地/远程): " model
        [ -n "$model" ] && ARGS+=("$model") ;;
     6) SCRIPT="0_disable_piper.sh" ;;
     q|Q) echo "再见 👋"; exit 0 ;;

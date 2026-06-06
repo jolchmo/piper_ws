@@ -79,6 +79,28 @@ ensure_can() {
 }
 
 # ----------------------------------------------------------------------------
+# 按 DATASET_SOURCE(local|remote) 把训练用的数据集参数填进全局数组 DATASET_ARGS。
+#   local  -> --dataset.root=<本地> --dataset.repo_id=<远程>（从本地盘读）
+#   remote -> 仅 --dataset.repo_id=<远程>（从 HuggingFace 拉取）
+# 依赖: DATASET_LOCAL, DATASET_REMOTE
+# ----------------------------------------------------------------------------
+set_dataset_train_args() {
+    DATASET_ARGS=(--dataset.repo_id="$DATASET_REMOTE")
+    if [ "${DATASET_SOURCE:-local}" != "remote" ]; then
+        DATASET_ARGS+=(--dataset.root="$DATASET_LOCAL")
+    fi
+}
+
+# ----------------------------------------------------------------------------
+# 解析评估用的 checkpoint：显式传参($1，即命令行参数或 EVAL_MODEL)优先；
+# 留空则按 MODEL_SOURCE 取 CKPT_LOCAL(本地) 或 CKPT_REMOTE(HF 仓库)。
+# ----------------------------------------------------------------------------
+resolve_ckpt() {
+    if [ -n "$1" ]; then echo "$1"; return; fi
+    if [ "${MODEL_SOURCE:-local}" = "remote" ]; then echo "$CKPT_REMOTE"; else echo "$CKPT_LOCAL"; fi
+}
+
+# ----------------------------------------------------------------------------
 # 打印配置后请操作者确认。设置 AUTO_CONFIRM=1 可跳过（用于无人值守/脚本调用）。
 # ----------------------------------------------------------------------------
 confirm_or_exit() {

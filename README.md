@@ -81,7 +81,38 @@ POLICY=act TRAIN_STEPS=50000 bash scripts/single/3_train_policy.sh
 
 设置 `AUTO_CONFIRM=1` 可跳过启动前的确认提示(无人值守)。
 
-常用约定:
+### 命名:只改身份,其余自动派生
+
+每个实验只需要定 4 个输入,数据集/模型/wandb 的名字全部自动拼出
+(`_LOCAL` = 本地路径,`_REMOTE` = HuggingFace 仓库):
+
+```
+你只改:  TASK   DATE(默认今天)   POLICY   TASK_DESC
+派生:
+  DATASET_ID = piper_<DATE>_<TASK>           → piper_20260606_pig_rgy
+    DATASET_LOCAL  / DATASET_REMOTE
+  MODEL_ID   = piper_<DATE>_<TASK>_<POLICY>  → piper_20260606_pig_rgy_wall_x
+    MODEL_LOCAL / MODEL_REMOTE
+    CKPT_LOCAL  = <MODEL_LOCAL>/checkpoints/last/pretrained_model
+    CKPT_REMOTE = <MODEL_REMOTE>
+```
+
+要训练 / 评估某一天采的数据,用 `DATE=20260605 bash …` 指定即可。
+
+### local / remote 来源开关
+
+```bash
+# 训练时数据集从本地盘还是从 HF 拉
+DATASET_SOURCE=local  bash scripts/single/3_train_policy.sh   # 默认，--dataset.root 用本地
+DATASET_SOURCE=remote bash scripts/single/3_train_policy.sh   # 仅 repo_id，从 HF 下载
+
+# 评估时模型用本地 ckpt 还是 HF 仓库
+MODEL_SOURCE=local  bash scripts/single/4_eval_policy.sh      # 用 CKPT_LOCAL(last)
+MODEL_SOURCE=remote bash scripts/single/4_eval_policy.sh      # 用 MODEL_REMOTE
+bash scripts/single/4_eval_policy.sh <路径或HF仓库>           # 命令行直接传，优先级最高
+```
+
+### 其它约定
 
 - **CAN 接口** 用物理 USB bus-info(如 `1-12:1.0`)在 `USB_PORTS` 里映射到逻辑名
   (`can_leader` / `can_follower`;双臂为 `can_l_*` / `can_r_*`)。
@@ -89,7 +120,6 @@ POLICY=act TRAIN_STEPS=50000 bash scripts/single/3_train_policy.sh
 - **相机** 为 Intel RealSense,按序列号写在 `CAMERAS` 数组里;key 会成为数据集特征名
   (如 `observation.images.top_cam`),并自动进入训练的 `--policy.input_features`。
   清空 `CAMERAS` 数组即可禁用相机。
-- `POLICY` / `ROBOT` / `REPO_USER` / `LOCAL_*_DIR` 决定派生出的数据集、模型命名。
 
 > 单臂 `3_train_policy.sh` 目前针对 **wall_x** 调优(预训练路径、`flash_attention_2`、
 > `bfloat16`);其 `input_features` 由 `CAMERAS` + `STATE_DIM` 自动生成。
