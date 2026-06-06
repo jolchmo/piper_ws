@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Piper 双臂数据采集 —— 设置见 config.env
+# Piper 双臂数据采集 —— 设置见 config.env（数据集始终写到本地 DATASET_LOCAL）
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,22 +8,18 @@ source "$WS_DIR/scripts/lib.sh"
 
 ensure_can "$SCRIPT_DIR/1_setup.sh" \
     "$CAN_LEFT_LEADER" "$CAN_RIGHT_LEADER" "$CAN_LEFT_FOLLOWER" "$CAN_RIGHT_FOLLOWER"
-
-# 双臂当前用单个 OpenCV 相机
-if [ -n "$CAMERA_PATH" ]; then
-    CAMERAS_CONFIG="{ gripper_cam: {type: opencv, index_or_path: \"$CAMERA_PATH\", fps: $CAMERA_FPS, width: $CAMERA_WIDTH, height: $CAMERA_HEIGHT} }"
-    echo "  📷 相机已启用: $CAMERA_PATH"
-else
-    CAMERAS_CONFIG="{}"
-    echo "  📷 相机已禁用"
-fi
+CAMERAS_CONFIG=$(build_cameras_config)
 
 echo "=========================================="
 echo "  Piper 双臂数据采集"
 echo "------------------------------------------"
-echo "  任务     : $MISSION_NAME"
-echo "  数据集   : $LOCAL_DATASET_NAME"
+echo "  任务描述 : $TASK_DESC"
+echo "  数据集   : $DATASET_LOCAL"
+echo "  远程仓库 : $DATASET_REMOTE (push=$DATASET_PUSH_TO_HUB)"
 echo "  采集数量 : $NUM_EPISODES episodes (resume=$RESUME)"
+show_cameras_info
+echo "------------------------------------------"
+echo "  快捷键: → 结束当前 episode    ESC 停止录制"
 echo "=========================================="
 confirm_or_exit
 
@@ -40,9 +36,9 @@ lerobot-record \
     --teleop.right_port="$CAN_RIGHT_LEADER" \
     --teleop.id=leader \
     --teleop.discover_packages_path=piper_lerobot \
-    --dataset.single_task="$MISSION_NAME" \
-    --dataset.root="$LOCAL_DATASET_NAME" \
-    --dataset.repo_id="$REPO_DATASET_NAME" \
+    --dataset.single_task="$TASK_DESC" \
+    --dataset.root="$DATASET_LOCAL" \
+    --dataset.repo_id="$DATASET_REMOTE" \
     --dataset.push_to_hub=$DATASET_PUSH_TO_HUB \
     --dataset.num_episodes=$NUM_EPISODES \
     --auto_reset_to_origin=true \

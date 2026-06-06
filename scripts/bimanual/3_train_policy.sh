@@ -6,31 +6,32 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config.env"
 source "$WS_DIR/scripts/lib.sh"
 
-# 命令行参数覆盖：$1=数据集根目录  $2=策略类型
-TRAIN_DATASET_ROOT="${1:-$LOCAL_DATASET_NAME}"
-POLICY="${2:-$POLICY}"
+# input_features 由 CAMERAS + STATE_DIM(=14) 自动生成，增减相机无需改本脚本
+INPUT_FEATURES=$(build_input_features)
+# 按 DATASET_SOURCE 填充数据集参数（local 从本地盘 / remote 从 HF 拉）
+set_dataset_train_args
 
-# 注意：下面的 input_features 仍按「top_cam + gripper_cam + state(7)」硬编码，
-# 双臂实际为单相机 + 14 维状态，正式训练前请按真实数据集特征调整。
+if [ "$DATASET_SOURCE" = "remote" ]; then DATASET_SHOWN="$DATASET_REMOTE (HF)"; else DATASET_SHOWN="$DATASET_LOCAL (本地)"; fi
+
 echo "=========================================="
 echo "  Piper 双臂策略训练"
 echo "------------------------------------------"
 echo "  策略     : $POLICY"
-echo "  数据集   : $TRAIN_DATASET_ROOT"
-echo "  输出目录 : $LOCAL_MODEL_NAME (push=$MODEL_PUSH_TO_HUB)"
-echo "  训练步数 : $TRAIN_STEPS   batch=$BATCH_SIZE"
+echo "  数据集   : $DATASET_SHOWN"
+echo "  输出目录 : $MODEL_LOCAL"
+echo "  上传模型 : push=$MODEL_PUSH_TO_HUB -> $MODEL_REMOTE"
+echo "  训练步数 : $TRAIN_STEPS   batch=$BATCH_SIZE   state=$STATE_DIM"
 echo "=========================================="
 confirm_or_exit
 
 lerobot-train \
     --policy.type=$POLICY \
     --policy.device=cuda \
-    --policy.input_features='{"observation.images.top_cam": {"shape": [3, 480, 640], "type": "VISUAL"}, "observation.images.gripper_cam": {"shape": [3, 480, 640], "type": "VISUAL"}, "observation.state": {"shape": [7], "type": "STATE"}}' \
-    --output_dir=$LOCAL_MODEL_NAME \
-    --policy.repo_id=$REPO_MODEL_NAME \
+    --policy.input_features="$INPUT_FEATURES" \
+    --output_dir=$MODEL_LOCAL \
+    --policy.repo_id=$MODEL_REMOTE \
     --policy.push_to_hub=$MODEL_PUSH_TO_HUB \
-    --dataset.root="$TRAIN_DATASET_ROOT" \
-    --dataset.repo_id=$REPO_DATASET_NAME \
+    "${DATASET_ARGS[@]}" \
     --dataset.video_backend=pyav \
     --robot.discover_packages_path=piper_lerobot \
     --env.type=piper \
@@ -42,4 +43,4 @@ lerobot-train \
     --log_freq=$LOG_FREQ \
     --wandb.enable=$WANDB_ENABLE \
     --wandb.project=$WANDB_PROJECT \
-    --wandb.run_id=$RUN_ID
+    --wandb.run_id="$WANDB_RUN_ID"

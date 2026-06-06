@@ -78,7 +78,7 @@ Set `AUTO_CONFIRM=1` to skip the pre-launch confirmation prompt (unattended runs
 | 1 | `1_setup.sh` | `modprobe gs_usb`, bring up & rename CAN interfaces per `USB_PORTS` |
 | 2 | `2_teleoperate.sh` / `2_record_dataset.sh` | Leader→follower teleop; record demos via `lerobot-record` |
 | 3 | `3_train_policy.sh` | Train a policy with `lerobot-train` (`torchrun` multi-GPU) |
-| 4 | `4_eval_policy.sh` | Deploy a checkpoint and record eval episodes (model path is required `$1`) |
+| 4 | `4_eval_policy.sh` | Deploy a checkpoint and record eval episodes (ckpt from `$1`/`EVAL_MODEL`, else `MODEL_SOURCE`) |
 
 The record/teleop/eval scripts auto-invoke `1_setup.sh` (via `ensure_can` in
 `scripts/lib.sh`) if a CAN interface is missing. Run a stage directly, e.g.
@@ -97,16 +97,28 @@ queued training on a cluster.
   array. The key becomes the dataset feature name (e.g. `observation.images.top_cam`).
   Empty the `CAMERAS` array to disable cameras. See `docs/cam_bind.md` for binding
   RealSense devices to stable `/dev` symlinks via udev rules.
-- `POLICY`, `ROBOT`, `REPO_USER`, and `LOCAL_DATASET_DIR`/`LOCAL_MODEL_DIR` drive
-  generated dataset/model names (the derived `*_NAME` vars at the bottom of
-  `config.env`). The full policy list is enumerated in the comment block at the
-  bottom of `config.env` (act, diffusion, pi0, smolvla, wall_x, …).
+- **Naming is derived from one identity block** (`TASK`, `DATE` default `today`,
+  `POLICY`, plus `ROBOT`/`REPO_USER`). Everything else is computed at the bottom of
+  `config.env` with a consistent suffix convention — `_LOCAL` = on-disk path,
+  `_REMOTE` = HF repo id:
+  `DATASET_ID = piper_<DATE>_<TASK>` → `DATASET_LOCAL`/`DATASET_REMOTE`;
+  `MODEL_ID = piper_<DATE>_<TASK>_<POLICY>` → `MODEL_LOCAL`/`MODEL_REMOTE` and
+  `CKPT_LOCAL` (= `MODEL_LOCAL/checkpoints/last/pretrained_model`) / `CKPT_REMOTE`.
+  Override `DATE=20260605` to reference a dataset/model from another day.
+  The full policy list is in the comment block at the bottom of `config.env`.
+- **`local`/`remote` source switches** select disk vs Hub at runtime:
+  `DATASET_SOURCE=local|remote` decides whether `3_train_policy.sh` reads the dataset
+  from `DATASET_LOCAL` (adds `--dataset.root`) or pulls `DATASET_REMOTE` from the Hub
+  (via `set_dataset_train_args` in `lib.sh`). `MODEL_SOURCE=local|remote` picks
+  `CKPT_LOCAL` vs `CKPT_REMOTE` for `4_eval_policy.sh` (via `resolve_ckpt`); a `$1`
+  arg or `EVAL_MODEL` always overrides it and may be either a local path or a repo.
 - Single-arm `3_train_policy.sh` is **wall_x-specific** (it sets the wall_x
   pretrained path, `flash_attention_2`, `bfloat16`); only its tunables come from
-  `config.env`. `--policy.input_features` is generated from `CAMERAS` + `STATE_DIM`
-  by `build_input_features`, so adding/removing a camera no longer requires editing
-  the train script. Bimanual `3_train_policy.sh` still has a hardcoded
-  `input_features` that needs manual review before a real bimanual run.
+  `config.env`. Both single and bimanual generate `--policy.input_features` from
+  `CAMERAS` + `STATE_DIM` via `build_input_features` (single `STATE_DIM=7`,
+  bimanual `STATE_DIM=14`), so adding/removing a camera no longer requires editing
+  the train script. Bimanual cameras are populated as commented examples in
+  `config.env` — fill in real RealSense serials before a vision run.
 
 ## HuggingFace Hub
 

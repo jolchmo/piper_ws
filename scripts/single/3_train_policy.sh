@@ -6,35 +6,37 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config.env"
 source "$WS_DIR/scripts/lib.sh"
 
-# 命令行第一个参数可覆盖训练用的数据集根目录（默认用 config.env 推导的本地数据集）
-TRAIN_DATASET_ROOT="${1:-$LOCAL_DATASET_NAME}"
-
 # input_features 由 CAMERAS + STATE_DIM 自动生成，增减相机无需改本脚本
 INPUT_FEATURES=$(build_input_features)
+# 按 DATASET_SOURCE 填充数据集参数（local 从本地盘 / remote 从 HF 拉）
+set_dataset_train_args
 
 # 某些机器编译 wall_x 需要额外的 CPATH
 [ -n "$EXTRA_CPATH" ] && export CPATH="$EXTRA_CPATH:$CPATH"
+
+if [ "$DATASET_SOURCE" = "remote" ]; then DATASET_SHOWN="$DATASET_REMOTE (HF)"; else DATASET_SHOWN="$DATASET_LOCAL (本地)"; fi
 
 echo "=========================================="
 echo "  Piper 单臂策略训练"
 echo "------------------------------------------"
 echo "  策略     : $POLICY (wall_x flow)"
-echo "  数据集   : $TRAIN_DATASET_ROOT"
-echo "  输出目录 : $SAVE_MODEL_NAME (push=$MODEL_PUSH_TO_HUB)"
+echo "  数据集   : $DATASET_SHOWN"
+echo "  输出目录 : $MODEL_LOCAL"
+echo "  上传模型 : push=$MODEL_PUSH_TO_HUB -> $MODEL_REMOTE"
 echo "  训练步数 : $TRAIN_STEPS   batch=$BATCH_SIZE   gpus=$NUM_GPUS"
 echo "  wandb    : enable=$WANDB_ENABLE project=$WANDB_PROJECT run=$WANDB_RUN_ID"
 echo "=========================================="
 
 # 输出目录已存在 -> 询问是否清理后重训
-if [ -d "$SAVE_MODEL_NAME" ]; then
-    echo "⚠️  输出目录已存在: $SAVE_MODEL_NAME"
+if [ -d "$MODEL_LOCAL" ]; then
+    echo "⚠️  输出目录已存在: $MODEL_LOCAL"
     if [ "${AUTO_CONFIRM:-0}" = "1" ]; then
         echo "AUTO_CONFIRM=1 -> 删除旧目录重训"
-        rm -rf "$SAVE_MODEL_NAME"
+        rm -rf "$MODEL_LOCAL"
     else
         read -p "删除旧目录并重新训练? [y/N]: " confirm
         if [[ "$confirm" =~ ^[Yy]$ ]]; then
-            rm -rf "$SAVE_MODEL_NAME"
+            rm -rf "$MODEL_LOCAL"
             echo "✅ 已清理。"
         else
             echo "🛑 已取消。"
@@ -53,11 +55,10 @@ torchrun --nproc_per_node=$NUM_GPUS $(which lerobot-train) \
     --policy.device=cuda \
     --policy.dtype=bfloat16 \
     --policy.input_features="$INPUT_FEATURES" \
-    --output_dir=$SAVE_MODEL_NAME \
-    --policy.repo_id=$REPO_MODEL_NAME \
+    --output_dir=$MODEL_LOCAL \
+    --policy.repo_id=$MODEL_REMOTE \
     --policy.push_to_hub=$MODEL_PUSH_TO_HUB \
-    --dataset.root="$TRAIN_DATASET_ROOT" \
-    --dataset.repo_id=$REPO_DATASET_NAME \
+    "${DATASET_ARGS[@]}" \
     --dataset.video_backend=pyav \
     --robot.discover_packages_path=piper_lerobot \
     --steps=$TRAIN_STEPS \
